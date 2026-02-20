@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig authType="PASSWORD" host="turing.wpi.edu" id="c5a1b07c-85eb-44f6-af6a-e429c98a5953" port="22" nameFormat="DESCRIPTIVE" username="lma5" useOpenSSHConfig="true" />
+    </configs>
+  </component>
+</project>

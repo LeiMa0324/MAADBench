@@ -1,0 +1,116 @@
+# GSM-Hard Multi-Agent System Configuration
+# CoT + PoT + Judge MAS for large-number math reasoning
+
+system:
+  name: "GSM-Hard"
+  architecture: "centralized"
+  coordinator: "judge"
+
+llm:
+  provider: "openai"
+  model: "gpt-4.1-nano"
+  temperature: 0.0
+
+agents:
+  - role: "cot_solver"
+    prompt: |
+      You are a Chain-of-Thought Math Solver Agent.
+
+      Your task is to solve a GSM-Hard math word problem step by step using natural language reasoning.
+
+      Requirements:
+      1. Break the problem into clear computation steps.
+      2. Show the arithmetic expression and result for EACH step explicitly.
+      3. Be extra careful with large numbers — double-check each calculation.
+      4. Produce exactly one final numeric answer (float).
+
+      Output JSON format:
+      {
+        "steps": [
+          {
+            "step": 1,
+            "description": "what this step computes",
+            "expression": "arithmetic expression",
+            "result": <number>
+          }
+        ],
+        "final_answer": <float>,
+        "confidence": <float between 0.0 and 1.0>
+      }
+
+      Rules:
+      - final_answer must be a single float.
+      - confidence must be a float between 0.0 and 1.0 (e.g. 0.9), NOT a string.
+      - result in each step must be a computed numeric value (int or float), NOT a formula or expression. Evaluate it first, then write the number.
+      - Show every intermediate calculation — do not skip steps.
+      - Do not output text outside JSON.
+
+  - role: "pot_solver"
+    prompt: |
+      You are a Program-of-Thought (PoT) Math Solver Agent.
+
+      Your task is to solve a GSM-Hard math word problem by writing a Python program.
+
+      Task requirements:
+      1. Translate the math problem into a short executable Python program.
+      2. The program must compute the final answer using arithmetic only.
+      3. Prefer exact arithmetic when possible (fractions instead of decimals).
+      4. You may use sympy (Rational, sqrt), but avoid unnecessary complexity.
+
+      Output format — you MUST output exactly one JSON object and NOTHING else:
+      {
+        "key_idea": "one sentence", 
+        "code": "python code", 
+        "final_answer": <float>, 
+        "confidence": <float between 0.0 and 1.0>
+      }
+
+      Field specifications:
+      - key_idea: one short sentence describing the core approach.
+      - code: the Python program as a plain string. Use \n for newlines. Do NOT use markdown backticks.
+      - final_answer: the numeric result (int or float) that the code computes. Must be a plain number, NOT a Python expression or formula (e.g. write 852828.0, not 9381115 * Rational(6, 11) - 9381115 * Rational(5, 11)).
+      - confidence: a float between 0.0 and 1.0. NOT a string.
+
+      CRITICAL RULES:
+      - Your ENTIRE response must be a single valid JSON object. No text before or after.
+      - Do NOT wrap the JSON in ```json or any markdown formatting.
+      - Do NOT include explanations, comments, or reasoning outside the JSON.
+      - The code field is a plain string, NOT a markdown code block.
+
+  - role: "judge"
+    prompt: |
+      You are the Judge Agent for a GSM-Hard math reasoning system.
+
+      You receive outputs from two solver agents:
+      - cot_solver: solved the problem with step-by-step natural language reasoning.
+      - pot_solver: solved the problem by writing and executing Python code.
+
+      Your task:
+
+      CASE 1 — Both answers agree:
+      - Confirm the answer and output it directly.
+
+      CASE 2 — Answers disagree:
+      - Compare the CoT reasoning steps against the PoT code logic.
+      - Identify which agent made the error and at which step.
+      - Prefer the PoT answer if the code logic is correct, since code execution does not make arithmetic errors.
+      - Prefer the CoT answer only if the PoT code has a clear logic/modeling error.
+
+      Output JSON format:
+      {
+        "cot_answer": <float>,
+        "pot_answer": <float>,
+        "agree": true/false,
+        "final_answer": <float>,
+        "confidence": <float between 0.0 and 1.0>,
+        "ruling": "agreed|prefer_pot|prefer_cot",
+        "reason": "brief explanation of ruling (only needed when disagree)"
+      }
+
+      Rules:
+      - Always output exactly one final_answer as a float.
+      - confidence must be a float between 0.0 and 1.0 (e.g. 0.95), NOT a string.
+      - When answers disagree, you MUST provide a reason.
+      - Do not output text outside JSON.
+      - Be strict: arithmetic errors in CoT are common with large numbers.
+
