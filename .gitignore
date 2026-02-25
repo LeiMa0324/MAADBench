@@ -1,0 +1,28 @@
+# Logs
+logs/
+**/logs/
+
+# Predictions
+predictions/
+**/predictions/
+
+# Traces
+traces/
+**/traces/
+
+# Workspace
+workspace/
+
+# Dataset
+dataset/
+GSM_hard/
+
+# IDE
+.idea/
+.claude/
+Icon
+
+# Python
+__pycache__/
+*.pyc
+.env
