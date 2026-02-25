@@ -1,26 +1,33 @@
-# Logs
-logs/
-**/logs/
-
-# Predictions
-predictions/
-**/predictions/
-
-# Traces
-traces/
-**/traces/
-
-# Workspace
+# OS
+.DS_Store
+desktop.ini
+Icon?
 workspace/
-
-# Dataset
-dataset/
-GSM_hard/
 
 # IDE
 .idea/
 .claude/
-Icon
+
+# Experiments
+wandb/
+logs/
+traces/
+predictions/
+
+# Dataset only
+dataset/
+GSM_hard/data/
+GSM_hard/Turing_traces/
+*.arrow
+*.jsonl
+*.lock
+
+#package
+SWE-bench/
+metagpt/
+SWE-Verified/metagpt/
+metagpt_mas.MetaGPT_42.json
+
 
 # Python
 __pycache__/
