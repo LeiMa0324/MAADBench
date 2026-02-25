@@ -3,8 +3,10 @@ system:
   coordinator: "equivalence_checker"
 
 llm:
-  provider: "openai"
-  model: "gpt-4o"
+  provider: "huggingface"
+  model: "Deepseek-R1-Distill"
+  hf_model_id: "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+  max_tokens: 4096
   temperature: 0.0
 
 
@@ -37,6 +39,8 @@ agents:
         r8: x / x  →  1   (condition: x ≠ 0)
         r9: a ⊙ b  →  c   (condition: a, b ∈ ℤ;  ⊙ ∈ {+,−,×,÷};  b ≠ 0 if ⊙ = ÷)
       
+
+      
       You must respond with a single valid JSON object — no markdown, no extra text. Schema:
       {
         "tree": {
@@ -54,6 +58,11 @@ agents:
         ],
         "confidence": <0.0–1.0>
       }
+      
+      Critical constraints:
+      - Output MUST be a single JSON object ONLY.
+      - Do NOT output analysis, reasoning, explanations, or any text outside JSON.
+      
 
   - role: "rule_selector"
     prompt: |
@@ -81,6 +90,8 @@ agents:
       - ALWAYS prefer r9 (numeric_fold) over r1-r6 when BOTH sides are numeric constants.
           Examples: 0+0 → r9, 2+0 → r9, 1*3 → r9. Use r1-r6 only when at least one side
           is a non-numeric expression (variable or sub-expression).
+      - Output MUST be a single JSON object ONLY.
+      - Do NOT output analysis, reasoning, explanations, or any text outside JSON.
       
       Do not apply the rule yourself. Do not simplify further than one step.
 
@@ -92,6 +103,10 @@ agents:
         "reason": "<brief explanation>",
         "confidence": <0.0–1.0>
       }
+      
+      Critical constraints:
+      - Output MUST be a single JSON object ONLY.
+      - Do NOT output analysis, reasoning, explanations, or any text outside JSON.
 
   - role: "transformer"
     prompt: |
@@ -123,6 +138,9 @@ agents:
       - ALWAYS prefer r9 (numeric_fold) over r1-r6 when BOTH sides are numeric constants.
           Examples: 0+0 → r9, 2+0 → r9, 1*3 → r9. Use r1-r6 only when at least one side
           is a non-numeric expression (variable or sub-expression).
+            Critical constraints:
+      - Output MUST be a single JSON object ONLY.
+      - Do NOT output analysis, reasoning, explanations, or any text outside JSON.
       
       You must respond with a single valid JSON object — no markdown, no extra text. Schema:
       {
@@ -132,6 +150,10 @@ agents:
         "error": "<error message or null>",
         "confidence": <0.0–1.0>
       }
+      
+      Critical constraints:
+      - Output MUST be a single JSON object ONLY.
+      - Do NOT output analysis, reasoning, explanations, or any text outside JSON.
 
   - role: "equivalence_checker"
     prompt: |
@@ -146,6 +168,10 @@ agents:
       Suggested assignments: {{2,3,5}}, {{-1,4,7}}, {{0.5,3,-2}}.
       
       If any division-by-zero would occur for an assignment, skip it and use another.
+      
+      Critical constraints:
+      - Output MUST be a single JSON object ONLY.
+      - Do NOT output analysis, reasoning, explanations, or any text outside JSON.
       
       You must respond with a single valid JSON object — no markdown, no extra text. Schema:
       {
@@ -163,3 +189,7 @@ agents:
         "final_answer": "<simplified expression>",
         "confidence": <0.0–1.0>
       }
+      
+      Critical constraints:
+      - Output MUST be a single JSON object ONLY.
+      - Do NOT output analysis, reasoning, explanations, or any text outside JSON.

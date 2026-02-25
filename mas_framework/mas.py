@@ -303,10 +303,13 @@ class MASOrchestrator(ABC):
         agents: Dict[str, Agent] = {}
 
         for agent_cfg in agents_config:
+            agent_llm_config = {**llm_config}
+            if "max_tokens" in agent_cfg:
+                agent_llm_config["max_tokens"] = agent_cfg["max_tokens"]
             agent = Agent(
                 role=agent_cfg["role"],
                 role_prompt=agent_cfg.get("prompt"),
-                llm_config=llm_config
+                llm_config=agent_llm_config,
             )
             agents[agent_cfg["role"]] = agent
 

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 load_dotenv()
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class LLM(ABC):
         self.model = config["model"]
         self.base_url = config.get("base_url", "")
         self.temperature = config.get("temperature", 0.0)
-        # self.max_tokens = config.get("max_tokens", 2048)
+        self.max_tokens = config.get("max_tokens", 4096)
         self.extra = {
             k: v for k, v in config.items()
             if k not in {"provider", "model", "base_url", "temperature"}
@@ -93,19 +94,17 @@ class LLM(ABC):
 
 
 # ──────────────────────────────────────────────
-# OpenAI-compatible Base (OpenAI / DeepSeek / Llama / QWen)
+# OpenAI
 # ──────────────────────────────────────────────
-class OpenAICompatibleLLM(LLM):
-    """
-    Shared call() logic for all OpenAI chat-completions-compatible backends.
-    Subclasses only need to implement _init_client() and set _provider_name.
-    """
-    _provider_name: str = "OpenAI-compatible"
+class OpenAI(LLM):
+    _provider_name = "OpenAI"
 
-    def _is_timeout_error(self, error: Exception) -> bool:
-        name = type(error).__name__.lower()
-        message = str(error).lower()
-        return "timeout" in name or "timeout" in message or "timed out" in message
+    def _init_client(self):
+        from openai import OpenAI as _OpenAI
+        self._client = _OpenAI(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            base_url=self.base_url or None,
+        )
 
     def call(self, prompt: str, system_prompt: str = "") -> str:
         messages = []
@@ -113,72 +112,17 @@ class OpenAICompatibleLLM(LLM):
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        request_timeout = float(self.extra.get("timeout", LLM_TIMEOUT))
-        hard_timeout = float(self.extra.get("hard_timeout", max(request_timeout * 3, request_timeout)))
-        max_retries = int(self.extra.get("max_retries", 0))
-
-        collected_content = []
-        collected_reasoning = []  # populated by reasoning models (e.g. DeepSeek-R1, o-series)
-        usage = None
         start = time.time()
 
-        for attempt in range(max_retries + 1):
-            collected_content = []
-            collected_reasoning = []
-            usage = None
-            attempt_start = time.time()
-            try:
-                if self._provider_name=='DeepSeek':
-                    stream = self._client.chat.completions.create(
-                        model=self.model,
-                        messages=messages,
-                        temperature=self.temperature,
-                        timeout=request_timeout,
-                        stream=True,
-                        stream_options={"include_usage": True},
-                        max_tokens= 2046  # limit deep think of deepseek
-                    )
-                else:
-                    stream = self._client.chat.completions.create(
-                        model=self.model,
-                        messages=messages,
-                        temperature=self.temperature,
-                        timeout=request_timeout,
-                        stream=True,
-                        stream_options={"include_usage": True},
-                    )
+        response = self._client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=self.temperature,
+            timeout=float(self.extra.get("timeout", LLM_TIMEOUT)),
+        )
 
-                for chunk in stream:
-                    if time.time() - attempt_start > hard_timeout:
-                        raise TimeoutError(
-                            f"Exceeded hard timeout ({hard_timeout:.1f}s) for one request attempt."
-                        )
-                    if chunk.usage:
-                        usage = chunk.usage
-                    if not chunk.choices:
-                        continue
-                    delta = chunk.choices[0].delta
-                    if delta.content:
-                        collected_content.append(delta.content)
-                    if hasattr(delta, "reasoning_content") and delta.reasoning_content:
-                        collected_reasoning.append(delta.reasoning_content)
-                break
-            except Exception as e:
-                if self._is_timeout_error(e):
-                    if attempt < max_retries:
-                        retry_wait = min(2 ** attempt, 8)
-                        logger.warning(
-                            "[%s] timeout on attempt %s/%s; retrying in %.1fs",
-                            self._provider_name, attempt + 1, max_retries + 1, retry_wait
-                        )
-                        time.sleep(retry_wait)
-                        continue
-                    in_reasoning = bool(collected_reasoning) and not bool(collected_content)
-                    return self._handle_timeout(
-                        self._provider_name, time.time() - start, in_reasoning,
-                        partial_reasoning="".join(collected_reasoning),
-                    )
-                raise
+        content = response.choices[0].message.content or ""
+        usage = getattr(response, "usage", None)
 
         duration = time.time() - start
         self.call_statistics.append(CallStatistic(
@@ -186,72 +130,79 @@ class OpenAICompatibleLLM(LLM):
             input_tokens=usage.prompt_tokens if usage else 0,
             output_tokens=usage.completion_tokens if usage else 0,
         ))
-        return "".join(collected_content)
+        return content
 
 
 # ──────────────────────────────────────────────
-# OpenAI
+# DeepSeek (OpenAI-compatible, streaming only)
 # ──────────────────────────────────────────────
-class OpenAI(OpenAICompatibleLLM):
-    _provider_name = "OpenAI"
-
-    def _init_client(self):
-        from openai import OpenAI
-        self._client = OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-        )
-
-
-# ──────────────────────────────────────────────
-# DeepSeek (OpenAI-compatible)
-# ──────────────────────────────────────────────
-class DeepSeek(OpenAICompatibleLLM):
+class DeepSeek(LLM):
     _provider_name = "DeepSeek"
 
     def _init_client(self):
-        import httpx
-        from openai import OpenAI
-
-        # DeepSeek latency is often spiky: use longer read timeout + retries by default.
-        self.extra.setdefault("timeout", 180)
-        self.extra.setdefault("hard_timeout", 600)
-        self.extra.setdefault("max_retries", 2)
-
-        self._client = OpenAI(
+        from openai import OpenAI as _OpenAI
+        self._client = _OpenAI(
             base_url=self.base_url,
-            timeout=httpx.Timeout(
-                connect=30.0,
-                read=float(self.extra["timeout"]),
-                write=30.0,
-                pool=30.0,
-            ),
         )
+
+    def call(self, prompt: str, system_prompt: str = "") -> str:
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        start = time.time()
+        collected = []
+        usage = None
+
+        stream = self._client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=self.temperature,
+            stream=True,
+            timeout=float(self.extra.get("timeout", 180)),
+        )
+
+        for chunk in stream:
+            if getattr(chunk, "usage", None):
+                usage = chunk.usage
+
+            if not getattr(chunk, "choices", None):
+                continue
+
+            delta = chunk.choices[0].delta
+
+            piece = None
+            if hasattr(delta, "content"):
+                piece = delta.content
+            elif isinstance(delta, dict):
+                piece = delta.get("content")
+            elif hasattr(delta, "text"):
+                piece = delta.text
+
+            if piece:
+                collected.append(piece)
+
+        duration = time.time() - start
+        self.call_statistics.append(CallStatistic(
+            duration=duration,
+            input_tokens=usage.prompt_tokens if usage else 0,
+            output_tokens=usage.completion_tokens if usage else 0,
+        ))
+        return "".join(collected)
 
 # ──────────────────────────────────────────────
 # Llama (Ollama / vLLM / any OpenAI-compatible)
 # ──────────────────────────────────────────────
-class Llama(OpenAICompatibleLLM):
+class Llama(OpenAI):
     _provider_name = "Llama"
-
-    def _init_client(self):
-        from openai import OpenAI
-        self._client = OpenAI(
-            # api_key=self.api_key or "ollama",
-            base_url=self.base_url
-        )
 
 
 # ──────────────────────────────────────────────
 # QWen (Alibaba Cloud, OpenAI-compatible)
 # ──────────────────────────────────────────────
-class QWen(OpenAICompatibleLLM):
+class QWen(OpenAI):
     _provider_name = "QWen"
-
-    def _init_client(self):
-        from openai import OpenAI
-        self._client = OpenAI(
-            base_url=self.base_url
-        )
 
 
 # ──────────────────────────────────────────────
@@ -308,6 +259,106 @@ class Claude(LLM):
 
 
 # ──────────────────────────────────────────────
+# HuggingFace (local inference via transformers)
+# ──────────────────────────────────────────────
+class HuggingFaceLLM(LLM):
+    """
+    Runs inference locally using a HuggingFace model loaded via transformers.
+    The model and tokenizer are loaded once per hf_model_id and shared across
+    all instances (class-level cache), so multiple agents reuse the same weights.
+    Config keys:
+      hf_model_id    - HuggingFace model ID (e.g. "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B")
+                       Falls back to `model` if not set.
+      max_tokens - max tokens to generate (default 2048)
+    """
+
+    _model_cache: dict = {}  # hf_model_id -> {"model": ..., "tokenizer": ...}
+
+    def _init_client(self):
+        import torch
+        import transformers
+        from transformers import AutoTokenizer, AutoModelForCausalLM
+
+        transformers.logging.set_verbosity_error()
+
+        hf_model_id = self.extra.get("hf_model_id", self.model)
+
+        if hf_model_id not in HuggingFaceLLM._model_cache:
+            print(f"[HuggingFaceLLM] Loading model: {hf_model_id}")
+            tokenizer = AutoTokenizer.from_pretrained(hf_model_id)
+            model = AutoModelForCausalLM.from_pretrained(
+                hf_model_id,
+                torch_dtype=torch.bfloat16,
+                device_map={"": 0},        # 强制整模型到 GPU0
+                attn_implementation="sdpa",
+            )
+            print(f"[HuggingFaceLLM] Model loaded on device: {model.device}")
+            HuggingFaceLLM._model_cache[hf_model_id] = {"model": model, "tokenizer": tokenizer}
+        else:
+            print(f"[HuggingFaceLLM] Reusing cached model: {hf_model_id}")
+
+        self._client = HuggingFaceLLM._model_cache[hf_model_id]
+
+    def call(self, prompt: str, system_prompt: str = "") -> str:
+        import torch
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        tokenizer = self._client["tokenizer"]
+        model = self._client["model"]
+
+        text = tokenizer.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            tokenize=False,
+        )
+        encoded = tokenizer(text, return_tensors="pt").to(model.device)
+        input_ids = encoded.input_ids
+        attention_mask = encoded.attention_mask
+
+        input_len = input_ids.shape[-1]
+        max_tokens = int(self.extra.get("max_tokens", 2048))
+        do_sample = self.temperature > 0
+        pad_token_id = tokenizer.pad_token_id or tokenizer.eos_token_id
+
+        start = time.time()
+        with torch.no_grad():
+            output_ids = model.generate(
+                input_ids,
+                attention_mask=attention_mask,
+                pad_token_id=pad_token_id,
+                max_new_tokens=max_tokens,
+                temperature=self.temperature if do_sample else None,
+                do_sample=do_sample,
+            )
+        duration = time.time() - start
+
+        new_tokens = output_ids[0][input_len:]
+        response = tokenizer.decode(new_tokens, skip_special_tokens=True)
+
+        # 剥离 <think>...</think> 块
+        if '<think>' in response:
+            response = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL).strip()
+
+        self.call_statistics.append(CallStatistic(
+            duration=duration,
+            input_tokens=input_len,
+            output_tokens=len(new_tokens),
+        ))
+        return response
+
+        self.call_statistics.append(CallStatistic(
+            duration=duration,
+            input_tokens=input_len,
+            output_tokens=len(new_tokens),
+        ))
+        return response
+
+
+# ──────────────────────────────────────────────
 # Factory
 # ──────────────────────────────────────────────
 PROVIDER_MAP = {
@@ -316,6 +367,7 @@ PROVIDER_MAP = {
     "deepseek": DeepSeek,
     "ollama": Llama,
     "qwen": QWen,
+    "huggingface": HuggingFaceLLM,
 }
 
 def create_llm_from_config(config: dict) -> LLM:

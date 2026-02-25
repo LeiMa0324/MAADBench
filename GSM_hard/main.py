@@ -10,6 +10,7 @@ import wandb
 # Add project root to path so local package imports work when running this file directly.
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(PROJECT_ROOT)
+print(PROJECT_ROOT)
 
 from GSM_hard.GSM_dataloader import *  # noqa
 from utils import *  # noqa
@@ -175,16 +176,18 @@ def main():
             label = "Normal" if is_correct else "Abnormal"
             label = label+"_parseError" if has_parse_error else label
 
+
+
+            with open(config_file, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
             # generate trace_if for file
             trace_id = generate_trace_id(
                 dataset=dataset,
                 mas_arch=mas_arch,
                 query_id=math_problem.problem_id,
+                temp=config["llm"].get("temperature", 0.0),
                 label= label
             )
-
-            with open(config_file, "r", encoding="utf-8") as f:
-                config = yaml.safe_load(f)
             trace_path = mas.save_execution_trace(config,
                 question_data = question_data, output_dir=args.output_dir, trace_id=trace_id)
             print(f"Execution trace saved to: {trace_path}")
@@ -231,6 +234,7 @@ def main():
     print(f"[Phase 4: Evaluation Summary] \nTotal Problems: {len(remaining)}, correct: {correct}, Accuracy: {correct/len(remaining) *100:.1f}%")
     wandb.finish()
 
+    # todo: 按照temperature构造progress
 
 if __name__ == "__main__":
     main()

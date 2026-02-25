@@ -15,20 +15,22 @@ Usage:
     python sage_runner.py --expr "((x * 1) + (0 + y))" --save-trace
 """
 
+import sys
+import os
+# Add project root to path so local package imports work when running this file directly.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
+
 import argparse
 import json
-import os
-import sys
 from typing import Optional
 from Sage_Dataloader import *
+import wandb
 
 from sage_mas import SAGEOrchestrator
 from mas_framework.mas import Agent
 import yaml
 from utils import *  # noqa
-
-
-
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
 def parse_args():
@@ -58,51 +60,87 @@ if __name__ == "__main__":
 
     mas = SAGEOrchestrator.from_config(args.config_file)
 
+    wandb.init(
+        project=f"Lomas-SAGE",
+        config={
+            "dataset": "SAGE",
+            "mas_arch": "sequential",
+            "config_file": args.config_file,
+            "seed": args.seed,
+            "split": args.split,
+        },
+        resume="allow",
+    )
+
     print("\n--- Reload from CSV ---")
     loader2 = SAGEDataLoader.from_csv("tasks.csv")
 
-    correct = 0
-    level = 'hard'
-    problems = loader2.by_level("hard")
-    print(f"selecting {len(problems)} {level} problems...")
-    for item in problems:
-        print(f"  {item.e_id}: {item.ori_expression}")
-        expr = item.ori_expression
+    with open(args.config_file, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
 
-        print(f"\n{'━' * 60}")
-        print(f"  SAGE Simplification Pipeline")
-        print(f"  Expression : {expr}")
-        print(f"{'━' * 60}")
+    levels = ["easy", "medium", "hard"]
+    level_results = {}
 
-        result = mas.run(problem=expr)
+    for level in levels:
+        problems = loader2.by_level(level)
+        if not problems:
+            continue
 
-        prediction = result["final_answer"]
-        is_correct = item.simple_evaluate(result["final_answer"])
+        correct = 0
+        print(f"\nselecting {len(problems)} {level} problems...")
+        for tested, item in enumerate(problems, start=1):
+            print(f"  {item.e_id}: {item.ori_expression}")
+            expr = item.ori_expression
 
-        if is_correct:
-            correct += 1
-            status = "✓ CORRECT"
-        else:
-            status = "✗ WRONG"
+            print(f"\n{'━' * 60}")
+            print(f"  SAGE Simplification Pipeline")
+            print(f"  Expression : {expr}")
+            print(f"{'━' * 60}")
 
-        print(f"Predicted: {prediction}, Ground Truth: {item.ground_truth} -> {status}")
-        label = "Normal" if is_correct else "Abnormal"
+            result = mas.run(problem=expr)
 
-        with open(args.config_file, "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
+            prediction = result["final_answer"]
+            is_correct = item.simple_evaluate(result["final_answer"])
 
-        label = ''
-        # generate trace_if for file
-        trace_id = generate_trace_id(
-            dataset=args.dataset,
-            mas_arch=args.mas_arch,
-            query_id=item.e_id,
-            label=label
-        )
-        trace_path = mas.save_execution_trace(config,
-                                              question_data=item.to_dict(), output_dir=args.output_dir,
-                                              trace_id=trace_id)
-        print(f"Execution trace saved to: {trace_path}")
+            if is_correct:
+                correct += 1
+                status = "✓ CORRECT"
+            else:
+                status = "✗ WRONG"
 
-    print(f"[Phase 4: Evaluation Summary] \nTotal Problems: {len(loader2)}, correct: {correct}, Accuracy: {correct/len(problems) *100:.1f}%")
+            print(f"Predicted: {prediction}, Ground Truth: {item.ground_truth} -> {status}")
+            print(f"[{level}] Running accuracy: {correct}/{tested} = {correct/tested*100:.1f}%")
+            running_accuracy = correct/tested*100
+            level_percentage = tested/len(problems)
+            wandb.log({
+                "total": len(loader2),
+                f"{level}_percent": level_percentage*100,
+                f"{level}_accuracy": running_accuracy
+
+            })
+            label = "Normal" if is_correct else "Abnormal"
+
+            # generate trace_id for file
+            trace_id = generate_trace_id(
+                dataset=args.dataset,
+                mas_arch=args.mas_arch,
+                query_id=item.e_id,
+                label=label
+            )
+            trace_path = mas.save_execution_trace(config,
+                                                  question_data=item.to_dict(), output_dir=args.output_dir,
+                                                  trace_id=trace_id)
+            print(f"Execution trace saved to: {trace_path}")
+
+        level_results[level] = (correct, len(problems))
+
+    print(f"\n[Phase 4: Evaluation Summary]")
+    total_correct = 0
+    total_problems = 0
+    for level, (correct, n) in level_results.items():
+        print(f"  {level:8s}: {correct}/{n} = {correct/n*100:.1f}%")
+        total_correct += correct
+        total_problems += n
+    if total_problems > 0:
+        print(f"  {'overall':8s}: {total_correct}/{total_problems} = {total_correct/total_problems*100:.1f}%")
 

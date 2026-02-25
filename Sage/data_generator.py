@@ -544,7 +544,7 @@ class SAGEDataGenerator:
 if __name__ == "__main__":
 
     generator = SAGEDataGenerator(seed=42)
-    tasks = generator.generate(easy=5, medium=5, hard=5)
+    tasks = generator.generate(easy=30, medium=30, hard=40)
     task_df = pd.DataFrame.from_dict(tasks)
     task_df["e_id"] = task_df.index
     task_df.to_csv("tasks.csv")

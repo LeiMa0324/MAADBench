@@ -28,6 +28,7 @@ def _print_step(step: int, role: str, output: AgentOutput) -> None:
     content = output.content
     if "error" in content and content["error"]:
         print(f"  ⚠  ERROR: {content['error']}")
+        print(f"  RAW: {output.reasoning}")
     else:
         print(json.dumps(content, indent=4, ensure_ascii=False))
     print(f"  confidence: {output.confidence:.2f}")

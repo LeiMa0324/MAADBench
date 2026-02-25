@@ -28,7 +28,7 @@ echo "After export, CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 
 PORT=8081
 MODEL=~/llama.cpp/models/DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf
-LOG_DIR=~/Lomas/GSM_hard/logs
+LOG_DIR=~/Lomas/Sage/logs
 mkdir -p $LOG_DIR
 
 ~/llama.cpp/build/bin/llama-server \
@@ -44,7 +44,7 @@ echo "llama-server PID=$SERVER_PID"
 
 # 等待 server 就绪，最多 120 秒，server 崩了立即报错退出
 echo "Waiting for server /health..."
-for i in $(seq 1 60); do
+for i in $(seq 1 120); do
   sleep 4
   if curl -sf http://127.0.0.1:${PORT}/health >/dev/null; then
     echo "Health OK!"
@@ -61,9 +61,9 @@ done
 curl -s http://127.0.0.1:${PORT}/v1/models || true
 echo
 
-cd ~/Lomas/GSM_hard
+cd ~/Lomas/Sage
 
-python -u main.py --mas_arch=AutoGen --config_file=configs/default_config_deepseek.yaml \
+python -u main.py --config_file=configs/config.yaml \
   > $LOG_DIR/client.${SLURM_JOB_ID}.log 2>&1 || true
 
 echo "Stopping server..."

@@ -9,7 +9,7 @@ system:
 llm:
   provider: "deepseek"
   model: "Deepseek-R1-Distill"
-  temperature: 0.0
+  temperature: 0.3
   base_url: "http://localhost:8081/v1"
 
 agents:
