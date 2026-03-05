@@ -179,19 +179,17 @@ class SAGEDataGenerator:
         config: Optional[DifficultyConfig] = None,
         n: Optional[int] = None,
         anomaly_modes: Optional[dict] = None,
-        anomaly_levels: Optional[list] = None,
     ) -> list:
         """
         Generate tasks at specified difficulty levels.
         Pass config + n to use a custom DifficultyConfig instead of level presets.
 
         easy/medium/hard counts produce *clean* tasks only.
-        anomaly_modes: e.g. {"FM-2.6": 5, "FM-3.1": 3} — adds 5+3 new anomaly tasks
-                       (cloned from eligible clean tasks, originals stay clean)
-        anomaly_levels: which difficulty levels to clone from (default: ["easy"])
+        anomaly_modes: e.g. {"FM-2.6": 5, "FM-3.1": 3} — independently generates
+                       5+3 new anomaly tasks at easy difficulty, then shuffles all.
         """
         if config is not None and n is not None:
-            return self._generate_from_config(config, n, anomaly_modes, anomaly_levels)
+            return self._generate_from_config(config, n, anomaly_modes)
 
         tasks = []
         for level_str, count in [("easy", easy), ("medium", medium), ("hard", hard)]:
@@ -207,13 +205,12 @@ class SAGEDataGenerator:
             print(f"Generated {count} {level_str} tasks.")
 
         if anomaly_modes:
-            self._assign_anomalies(tasks, anomaly_modes, anomaly_levels)
+            self._assign_anomalies(tasks, anomaly_modes)
 
         return tasks
 
     def _generate_from_config(self, cfg: DifficultyConfig, n: int,
-                              anomaly_modes: Optional[dict] = None,
-                              anomaly_levels: Optional[list] = None) -> list:
+                              anomaly_modes: Optional[dict] = None) -> list:
         tasks, pool = [], []
         level_str = "custom"
         for i in range(n):
@@ -224,7 +221,7 @@ class SAGEDataGenerator:
         print(f"Generated {n} custom tasks.")
 
         if anomaly_modes:
-            self._assign_anomalies(tasks, anomaly_modes, anomaly_levels)
+            self._assign_anomalies(tasks, anomaly_modes)
 
         return tasks
 
@@ -297,40 +294,31 @@ class SAGEDataGenerator:
 
         return task
 
-    def _assign_anomalies(self, tasks, anomaly_modes, anomaly_levels):
-        """Create new anomaly tasks by cloning eligible clean tasks. Originals stay clean."""
-        if anomaly_levels is None:
-            anomaly_levels = ["easy"]
-
-        import copy
+    def _assign_anomalies(self, tasks, anomaly_modes):
+        """Independently generate anomaly tasks at easy difficulty and append to tasks."""
+        cfg = DifficultyConfig.from_level(DifficultyLevel.EASY)
         anomaly_inj = AnomalyInjector(seed=self.seed)
-        eligible = [t for t in tasks if t["level"] in anomaly_levels]
         rng = random.Random(self.seed + 999)
-        rng.shuffle(eligible)
 
         idx = 0
         for fm_code, count in anomaly_modes.items():
-            for _ in range(count):
-                if idx >= len(eligible):
-                    print(f"Warning: not enough eligible tasks for all anomalies")
-                    break
-                source = eligible[idx]
-                new_task = copy.deepcopy(source)
-                config = anomaly_inj.pick_random_config(new_task, anomaly_type=fm_code)
-                new_task["anomaly"] = {
+            for j in range(count):
+                task_rng = random.Random(self.seed * 90000 + idx)
+                task = self._generate_one(cfg, task_rng, [], "easy")
+                config = anomaly_inj.pick_random_config(task, anomaly_type=fm_code)
+                task["anomaly"] = {
                     "anomaly_type": config.anomaly_type,
                     "target_agent": config.target_agent,
                     "injection_step": config.injection_step,
                 }
-                tasks.append(new_task)
+                tasks.append(task)
                 idx += 1
 
         # Shuffle so anomaly tasks are interleaved with clean tasks
         rng.shuffle(tasks)
 
         summary = ", ".join(f"{fm} x{c}" for fm, c in anomaly_modes.items())
-        levels_str = ", ".join(anomaly_levels)
-        print(f"Injected anomalies: {summary} (on {levels_str} tasks, {idx} added)")
+        print(f"Injected anomalies: {summary} ({idx} generated, shuffled into task list)")
 
 
 # ---------------------------------------------------------------------------
