@@ -192,6 +192,94 @@ class DeepSeek(LLM):
         return "".join(collected)
 
 # ──────────────────────────────────────────────
+# DeepSeek API (official cloud API)
+# ──────────────────────────────────────────────
+class DeepSeekAPI(LLM):
+    """
+    Calls the official DeepSeek cloud API (https://api.deepseek.com).
+    Uses DEEPSEEK_API_KEY from environment.
+    Supports both deepseek-chat and deepseek-reasoner models.
+    For deepseek-reasoner, reasoning_content is stripped from the output.
+    """
+    _provider_name = "DeepSeekAPI"
+
+    def _init_client(self):
+        from openai import OpenAI as _OpenAI
+        self._client = _OpenAI(
+            api_key=os.getenv("DEEPSEEK_API_KEY"),
+            base_url="https://api.deepseek.com",
+        )
+
+    def call(self, prompt: str, system_prompt: str = "") -> str:
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        start = time.time()
+        collected = []
+        usage = None
+
+        stream = self._client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            stream=True,
+            timeout=float(self.extra.get("timeout", 180)),
+        )
+
+        in_reasoning = False
+        partial_reasoning = []
+
+        for chunk in stream:
+            if getattr(chunk, "usage", None):
+                usage = chunk.usage
+
+            if not getattr(chunk, "choices", None):
+                continue
+
+            delta = chunk.choices[0].delta
+
+            # deepseek-reasoner returns reasoning_content before content
+            reasoning_piece = getattr(delta, "reasoning_content", None)
+            if reasoning_piece:
+                in_reasoning = True
+                partial_reasoning.append(reasoning_piece)
+                continue
+
+            piece = None
+            if hasattr(delta, "content"):
+                piece = delta.content
+            elif isinstance(delta, dict):
+                piece = delta.get("content")
+
+            if piece:
+                collected.append(piece)
+
+        duration = time.time() - start
+
+        # timeout handling: if we got reasoning but no content
+        if not collected and partial_reasoning:
+            return self._handle_timeout(
+                "DeepSeekAPI", duration, True,
+                partial_reasoning="".join(partial_reasoning),
+            )
+
+        self.call_statistics.append(CallStatistic(
+            duration=duration,
+            input_tokens=getattr(usage, "prompt_tokens", 0) if usage else 0,
+            output_tokens=getattr(usage, "completion_tokens", 0) if usage else 0,
+        ))
+
+        result = "".join(collected)
+        # Strip <think>...</think> blocks if present
+        if "<think>" in result:
+            result = re.sub(r"<think>.*?</think>", "", result, flags=re.DOTALL).strip()
+        return result
+
+
+# ──────────────────────────────────────────────
 # Llama (Ollama / vLLM / any OpenAI-compatible)
 # ──────────────────────────────────────────────
 class Llama(OpenAI):
@@ -365,6 +453,7 @@ PROVIDER_MAP = {
     "openai": OpenAI,
     "claude": Claude,
     "deepseek": DeepSeek,
+    "deepseek-api": DeepSeekAPI,
     "ollama": Llama,
     "qwen": QWen,
     "huggingface": HuggingFaceLLM,

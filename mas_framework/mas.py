@@ -7,7 +7,7 @@ MAS: Agent + Orchestrator (AutoGen / LangGraph)
 """
 
 import json
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar, Tuple
 
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
@@ -238,19 +238,24 @@ class MASOrchestrator(ABC):
     def get_worker_agents(self) -> List[Agent]:
         return [a for name, a in self.agents.items() if name != self.coordinator_role]
 
-    def save_execution_trace(self,config, question_data, output_dir: str = "traces", trace_id: str = None) -> str:
+    def save_execution_trace(self,meta_data:dict, output_dir: str = "traces", trace_id: str = None) -> Tuple[Dict, str]:
         os.makedirs(output_dir, exist_ok=True)
 
         if trace_id is None:
             trace_id = f"trace_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-        trace = {"config": config, "question": question_data, "trace":self.trace}
+            # 自动合并 self.trace
+        trace_payload = {
+            **meta_data,  # config, question, etc.
+            "trace": self.trace  # 强制使用 self.trace
+        }
         path = os.path.join(output_dir, f"{trace_id}.json")
 
         with open(path, "w") as f:
-            json.dump(trace, f, indent=2)
+            json.dump(trace_payload, f, indent=2)
 
-        return path
+        print(f"Execution trace saved to: {path}")
+        return trace_payload
 
     def run(self, problem, context: Optional[str] = None):
         self.trace = []
