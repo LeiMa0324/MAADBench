@@ -25,3 +25,14 @@ def extract_json(text: str) -> dict | None:
             except json.JSONDecodeError:
                 return None
     return None
+
+def save_jsonl(data, path):
+    with open(path, "w", encoding="utf-8") as f:
+        for item in data:
+            f.write(json.dumps(item))
+            f.write("\n")
+
+
+def load_jsonl(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return [json.loads(line) for line in f]
