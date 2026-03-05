@@ -327,7 +327,7 @@ class SAGEDataGenerator:
 
 if __name__ == "__main__":
     gen = SAGEDataGenerator(seed=42)
-    tasks = gen.generate(easy=5, medium=5, hard=5, anomaly_modes={
+    tasks = gen.generate(easy=80, medium=20, hard=20, anomaly_modes={
         "FM-2.4": 5,"FM-2.5": 5,"FM-2.6": 5,"FM-3.1": 5,"FM-3.2": 5,"FM-3.3": 5})
     save_jsonl(tasks, "tasks.jsonl")
 
