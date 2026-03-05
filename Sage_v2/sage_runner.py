@@ -15,7 +15,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent))
 import wandb
 
-ENABLE_WANDB = False
+ENABLE_WANDB = True
 from sage_generator import SAGEDataGenerator
 from sage_anomaly import AnomalyInjector, AnomalyConfig
 from sage_tracker import SAGETracker, TraceEvaluation, print_evaluation, FM_DESCRIPTIONS
