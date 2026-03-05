@@ -10,7 +10,7 @@ Phase 3 (anomaly injection) is intentionally separate: see sage_anomaly.py.
 """
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 import random
 from dataclasses import dataclass, field
 from typing import Optional
