@@ -8,6 +8,8 @@ Responsibilities:
 
 Phase 3 (anomaly injection) is intentionally separate: see sage_anomaly.py.
 """
+import sys
+from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import random
 from dataclasses import dataclass, field
