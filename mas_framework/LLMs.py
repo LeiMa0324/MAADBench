@@ -101,8 +101,11 @@ class OpenAI(LLM):
 
     def _init_client(self):
         from openai import OpenAI as _OpenAI
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key and self.base_url:
+            api_key = "EMPTY"          # local vLLM / compatible endpoints don't need a real key
         self._client = _OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=api_key,
             base_url=self.base_url or None,
         )
 
