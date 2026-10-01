@@ -1,4 +1,0 @@
-1. build intermediate result evaluator to support root cause analaysis
-2. run traces in scale, like hundreds, get success rates for different difficulty levels
-3. check the failure ones, if they are simple design/prompt flaws, or genuine anomalies.
-4. categorize the emergent anomalies [temporarily based on MAST categories], get anomaly distribution

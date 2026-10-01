@@ -1,0 +1,9 @@
+system:
+  architecture: "sequential"
+
+llm:
+  provider: openai
+  model: Qwen2.5-14B-Instruct
+  base_url: http://localhost:8000/v1
+  max_tokens: 2048
+  temperature: 0.0

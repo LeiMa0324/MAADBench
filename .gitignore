@@ -11,21 +11,24 @@ workspace/
 # Experiments
 wandb/
 logs/
-traces/
 predictions/
+
+# Keep only reusable room definitions from experiment output.
+/output/*
+!/output/rooms/
+!/output/rooms/**
 
 # Dataset only
 dataset/
-GSM_hard/data/
-GSM_hard/Turing_traces/
 *.arrow
 *.jsonl
+!/output/rooms/*.jsonl
 *.lock
 
 #package
 SWE-bench/
 metagpt/
-SWE-Verified/metagpt/
+SWE/metagpt/
 metagpt_mas.MetaGPT_42.json
 
 
@@ -33,3 +36,20 @@ metagpt_mas.MetaGPT_42.json
 __pycache__/
 *.pyc
 .env
+/mine.env
+
+# Local analysis, paper artifacts, and downloaded datasets are not published.
+/benchmark_analyze/
+/data_artifacts/
+/paper_resources/
+
+# Generated AD experiment outputs and scheduler logs.
+/benchmark_AD/plots/data/
+/benchmark_AD/plots/*.csv
+/benchmark_AD/plots/*.pdf
+/benchmark_AD/batch_jobs/**/output_files/
+
+# Matplotlib's local runtime/font cache.
+/.mplconfig/
+/SWE/
+/SWE-bench/

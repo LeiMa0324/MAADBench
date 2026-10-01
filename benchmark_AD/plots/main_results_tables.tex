@@ -1,0 +1,102 @@
+% ----------------- results table ------------------
+\begin{table*}[ht]
+    \centering
+    \small
+    \setlength{\tabcolsep}{3pt}
+    \caption{
+        Overall anomaly detection performance across four supervision settings. Dark blue cells indicate $p < 0.01$ and light blue cells indicate $p < 0.05$ relative to \textit{Random} performance.
+    }
+    \label{tab:main_results}
+    \resizebox{\linewidth}{!}{
+    \begin{tabular}{lllcccc}
+\toprule
+\textbf{Supervision} & \textbf{Method} & \textbf{Method Family} & \textbf{F1} & \textbf{Acc} & \textbf{AUC} & \textbf{Bal. Acc} \\
+\midrule
+\multirow{1}{*}{-} & Random & Random & $.176_{ \pm .021 }$ & $.705_{ \pm .021 }$ & $.494_{ \pm .013 }$ & $.498_{ \pm .013 }$  \\
+\midrule
+\multirow{7}{*}{Unsupervised} 
+& Isolation Forest & Tabular & \cellcolor{blue!50} $.281_{ \pm .041 }$ & \cellcolor{blue!50} $.743_{ \pm .012 }$ & \cellcolor{blue!25} $.543_{ \pm .039 }$ & \cellcolor{blue!50} $.562_{ \pm .020 }$  \\
+& KNN & Tabular & \cellcolor{blue!50} $.239_{ \pm .032 }$ & $.728_{ \pm .024 }$ & $.488_{ \pm .038 }$ & \cellcolor{blue!50} $.537_{ \pm .021 }$  \\
+& LOF & Tabular & $.056_{ \pm .009 }$ & $.662_{ \pm .027 }$ & $.378_{ \pm .026 }$ & $.425_{ \pm .011 }$  \\
+& Gemma4-E2B (zero-shot) & LLM & \cellcolor{blue!50} $.296_{ \pm .013 }$ & \cellcolor{blue!50} $.746_{ \pm .014 }$ & \cellcolor{blue!50} $.560_{ \pm .014 }$ & \cellcolor{blue!50} $.571_{ \pm .005 }$  \\
+& Gemma4-E4B (zero-shot) & LLM & \cellcolor{blue!50} $.332_{ \pm .027 }$ & \cellcolor{blue!50} $.758_{ \pm .018 }$ & \cellcolor{blue!50} $.596_{ \pm .020 }$ & \cellcolor{blue!50} $.593_{ \pm .017 }$  \\
+& Gemma4-26B-A4B (zero-shot) & LLM & \cellcolor{blue!50} $.244_{ \pm .035 }$ & \cellcolor{blue!25} $.729_{ \pm .013 }$ & \cellcolor{blue!50} $.542_{ \pm .021 }$ & \cellcolor{blue!50} $.540_{ \pm .017 }$  \\
+& Gemma4-31B (zero-shot) & LLM & \cellcolor{blue!50} $.288_{ \pm .033 }$ & \cellcolor{blue!50} $.741_{ \pm .010 }$ & \cellcolor{blue!50} $.594_{ \pm .014 }$ & \cellcolor{blue!50} $.564_{ \pm .014 }$  \\
+\midrule
+\multirow{6}{*}{One-Class} 
+& Autoencoder & Tabular & \cellcolor{blue!50} $.296_{ \pm .036 }$ & \cellcolor{blue!50} $.748_{ \pm .020 }$ & $.511_{ \pm .029 }$ & \cellcolor{blue!50} $.571_{ \pm .021 }$  \\
+& DeepSVDD & Tabular & \cellcolor{blue!25} $.245_{ \pm .056 }$ & \cellcolor{blue!25} $.731_{ \pm .020 }$ & \cellcolor{blue!25} $.592_{ \pm .102 }$ & \cellcolor{blue!25} $.541_{ \pm .031 }$  \\
+& OC-SVM & Tabular & \cellcolor{blue!50} $.293_{ \pm .034 }$ & \cellcolor{blue!50} $.747_{ \pm .018 }$ & \cellcolor{blue!50} $.600_{ \pm .024 }$ & \cellcolor{blue!50} $.570_{ \pm .019 }$  \\
+& DOMINANT & Graph & \cellcolor{blue!50} $.269_{ \pm .030 }$ & \cellcolor{blue!25} $.739_{ \pm .011 }$ & \cellcolor{blue!50} $.702_{ \pm .010 }$ & \cellcolor{blue!50} $.555_{ \pm .012 }$  \\
+& TAM & Graph & $.130_{ \pm .041 }$ & $.688_{ \pm .032 }$ & $.423_{ \pm .011 }$ & $.470_{ \pm .029 }$  \\
+& BlindGuard & MAS-specific & $.126_{ \pm .029 }$ & $.687_{ \pm .027 }$ & $.415_{ \pm .015 }$ & $.467_{ \pm .021 }$  \\
+\midrule
+\multirow{8}{*}{Semi-Supervised} 
+& DeepSAD & Tabular & \cellcolor{blue!50} $.490_{ \pm .057 }$ & \cellcolor{blue!50} $.818_{ \pm .009 }$ & \cellcolor{blue!50} $.803_{ \pm .016 }$ & \cellcolor{blue!50} $.690_{ \pm .030 }$  \\
+& DevNet & Tabular & \cellcolor{blue!50} $.481_{ \pm .062 }$ & \cellcolor{blue!50} $.815_{ \pm .015 }$ & \cellcolor{blue!50} $.788_{ \pm .015 }$ & \cellcolor{blue!50} $.684_{ \pm .034 }$  \\
+& GGAD & Graph & $.172_{ \pm .053 }$ & $.704_{ \pm .018 }$ & $.516_{ \pm .027 }$ & $.496_{ \pm .028 }$  \\
+& G-Safe (semi-sup) & MAS-specific & \cellcolor{blue!50} $.324_{ \pm .080 }$ & \cellcolor{blue!50} $.841_{ \pm .013 }$ & \cellcolor{blue!50} $.797_{ \pm .018 }$ & \cellcolor{blue!50} $.600_{ \pm .038 }$  \\
+& Gemma4-E2B (few-shot) & LLM & \cellcolor{blue!50} $.303_{ \pm .019 }$ & $.739_{ \pm .025 }$ & \cellcolor{blue!25} $.571_{ \pm .027 }$ & \cellcolor{blue!50} $.572_{ \pm .015 }$  \\
+& Gemma4-E4B (few-shot) & LLM & \cellcolor{blue!50} $.342_{ \pm .039 }$ & $.753_{ \pm .033 }$ & \cellcolor{blue!25} $.591_{ \pm .043 }$ & \cellcolor{blue!25} $.596_{ \pm .030 }$  \\
+& Gemma4-26B-A4B (few-shot) & LLM & \cellcolor{blue!50} $.312_{ \pm .041 }$ & $.745_{ \pm .031 }$ & \cellcolor{blue!50} $.613_{ \pm .020 }$ & \cellcolor{blue!25} $.578_{ \pm .029 }$  \\
+& Gemma4-31B (few-shot) & LLM & \cellcolor{blue!50} $.348_{ \pm .012 }$ & \cellcolor{blue!25} $.759_{ \pm .026 }$ & \cellcolor{blue!25} $.628_{ \pm .038 }$ & \cellcolor{blue!50} $.600_{ \pm .016 }$  \\
+\midrule
+\multirow{4}{*}{Supervised} 
+& SVM & Tabular & \cellcolor{blue!50} $.553_{ \pm .033 }$ & \cellcolor{blue!50} $.841_{ \pm .006 }$ & \cellcolor{blue!50} $.796_{ \pm .017 }$ & \cellcolor{blue!50} $.728_{ \pm .016 }$  \\
+& Random Forest & Tabular & \cellcolor{blue!50} $\mathbf{.594_{ \pm .044 }}$ & \cellcolor{blue!50} $.855_{ \pm .007 }$ & \cellcolor{blue!50} $.863_{ \pm .007 }$ & \cellcolor{blue!50} $\mathbf{.754_{ \pm .023 }}$  \\
+& XGBoost & Tabular & \cellcolor{blue!50} $.587_{ \pm .039 }$ & \cellcolor{blue!50} $.853_{ \pm .006 }$ & \cellcolor{blue!50} $\mathbf{.878_{ \pm .012 }}$ & \cellcolor{blue!50} $.749_{ \pm .020 }$  \\
+& G-Safeguard & MAS-specific & \cellcolor{blue!50} $.551_{ \pm .030 }$ & \cellcolor{blue!50} $\mathbf{.855_{ \pm .012 }}$ & \cellcolor{blue!50} $.834_{ \pm .013 }$ & \cellcolor{blue!50} $.716_{ \pm .012 }$  \\
+\bottomrule
+    \end{tabular}}
+\end{table*}
+
+% ----------------- results table ------------------
+\begin{table*}[ht]
+    \centering
+    \small
+    \setlength{\tabcolsep}{3pt}
+    \caption{
+        One-tailed two-sample t-test p-values (Method $>$ Random) for overall anomaly detection performance across four performance metrics.
+    }
+    \label{tab:main_results_pvalues_n5}
+    \begin{tabular}{lllcccc}
+\toprule
+\textbf{Supervision} & \textbf{Method} & \textbf{Method Family} & \textbf{F1} & \textbf{Acc} & \textbf{AUC} & \textbf{Bal. Acc} \\
+\midrule
+\multirow{1}{*}{-} & Random & Random & - & - & - & -  \\
+\midrule
+\multirow{7}{*}{Unsupervised} 
+& Isolation Forest & Tabular & $.001$ & $.006$ & $.022$ & $<.001$  \\
+& KNN & Tabular & $.004$ & $.081$ & $.631$ & $.006$  \\
+& LOF & Tabular & $1.000$ & $.988$ & $1.000$ & $1.000$  \\
+& Gemma4-E2B (zero-shot) & LLM & $<.001$ & $.005$ & $<.001$ & $<.001$  \\
+& Gemma4-E4B (zero-shot) & LLM & $<.001$ & $.002$ & $<.001$ & $<.001$  \\
+& Gemma4-26B-A4B (zero-shot) & LLM & $.004$ & $.039$ & $.002$ & $.002$  \\
+& Gemma4-31B (zero-shot) & LLM & $<.001$ & $.009$ & $<.001$ & $<.001$  \\
+\midrule
+\multirow{6}{*}{One-Class} 
+& Autoencoder & Tabular & $<.001$ & $.006$ & $.144$ & $<.001$  \\
+& DeepSVDD & Tabular & $.024$ & $.045$ & $.049$ & $.017$  \\
+& OC-SVM & Tabular & $<.001$ & $.005$ & $<.001$ & $<.001$  \\
+& DOMINANT & Graph & $<.001$ & $.010$ & $<.001$ & $<.001$  \\
+& TAM & Graph & $.968$ & $.822$ & $1.000$ & $.952$  \\
+& BlindGuard & MAS-specific & $.992$ & $.861$ & $1.000$ & $.986$  \\
+\midrule
+\multirow{8}{*}{Semi-Supervised} 
+& DeepSAD & Tabular & $<.001$ & $<.001$ & $<.001$ & $<.001$  \\
+& DevNet & Tabular & $<.001$ & $<.001$ & $<.001$ & $<.001$  \\
+& GGAD & Graph & $.562$ & $.528$ & $.079$ & $.564$  \\
+& G-Safe (semi-sup) & MAS-specific & $.006$ & $<.001$ & $<.001$ & $.001$  \\
+& Gemma4-E2B (few-shot) & LLM & $<.001$ & $.064$ & $.014$ & $.001$  \\
+& Gemma4-E4B (few-shot) & LLM & $.005$ & $.055$ & $.027$ & $.011$  \\
+& Gemma4-26B-A4B (few-shot) & LLM & $.009$ & $.066$ & $.001$ & $.015$  \\
+& Gemma4-31B (few-shot) & LLM & $<.001$ & $.021$ & $.010$ & $<.001$  \\
+\midrule
+\multirow{4}{*}{Supervised} 
+& SVM & Tabular & $<.001$ & $<.001$ & $<.001$ & $<.001$  \\
+& Random Forest & Tabular & $\mathbf{<.001}$ & $<.001$ & $<.001$ & $\mathbf{<.001}$  \\
+& XGBoost & Tabular & $<.001$ & $<.001$ & $\mathbf{<.001}$ & $<.001$  \\
+& G-Safeguard & MAS-specific & $<.001$ & $\mathbf{<.001}$ & $<.001$ & $<.001$  \\
+\bottomrule
+    \end{tabular}
+\end{table*}

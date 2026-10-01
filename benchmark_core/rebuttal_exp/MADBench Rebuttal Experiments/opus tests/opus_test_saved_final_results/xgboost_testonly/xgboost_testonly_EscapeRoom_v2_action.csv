@@ -1,0 +1,6 @@
+seed,method,trace_dataset_name,path_traces,test_size,dataset_level,llm_in_mas,temp_llm,occ_training,perc_outliers_train,test_only_dataset,device,epoch,f1,acc,auc,bal_acc
+1,xgboost_testonly,EscapeRoom_v2,traces/opus-4.8,0.2,action,['claude-sonnet-4-20250514'],[0],clean,0.2,traces/opus-4.8,cuda,0,0.17721518987341772,0.7863013698630137,0.540658312873981,0.527209610050059
+2,xgboost_testonly,EscapeRoom_v2,traces/opus-4.8,0.2,action,['claude-sonnet-4-20250514'],[0],clean,0.2,traces/opus-4.8,cuda,0,0.17721518987341772,0.7863013698630137,0.5077466547630435,0.527209610050059
+3,xgboost_testonly,EscapeRoom_v2,traces/opus-4.8,0.2,action,['claude-sonnet-4-20250514'],[0],clean,0.2,traces/opus-4.8,cuda,0,0.1940928270042194,0.7906849315068493,0.5064141398038028,0.5369078744592886
+4,xgboost_testonly,EscapeRoom_v2,traces/opus-4.8,0.2,action,['claude-sonnet-4-20250514'],[0],clean,0.2,traces/opus-4.8,cuda,0,0.18143459915611815,0.7873972602739726,0.5235601398675722,0.5296341761523664
+5,xgboost_testonly,EscapeRoom_v2,traces/opus-4.8,0.2,action,['claude-sonnet-4-20250514'],[0],clean,0.2,traces/opus-4.8,cuda,0,0.1518987341772152,0.7797260273972603,0.5413172634420602,0.5126622134362147
