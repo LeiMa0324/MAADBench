@@ -310,3 +310,19 @@ by installing packages alone and are intentionally not selected by `--methods al
 For method-specific feature processing, labels, thresholds, and output details, see
 [benchmark_AD/README.txt](benchmark_AD/README.txt). For EscapeRoom internals, see
 [benchmark_core/README.md](benchmark_core/README.md).
+
+## Citation
+
+If you use MAADBench, please cite our paper:
+
+```bibtex
+@misc{ma2026maadbenchrefreshableparadigmanomaly,
+  title={MAADBench: The Refreshable Paradigm for Anomaly Detection in Multi-Agent Systems},
+  author={Lei Ma and Dennis Hofmann and Haowen Xu and Joshua DeOliveira and Peter VanNostrand and Lei Cao and Elke Rundensteiner},
+  year={2026},
+  eprint={2609.36556},
+  archivePrefix={arXiv},
+  primaryClass={cs.AI},
+  url={https://arxiv.org/abs/2609.36556},
+}
+```
